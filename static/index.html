@@ -4,32 +4,212 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TimeSeries Insight Dashboard</title>
+    <script src="/static/chart.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; font-size: 24px; }
+        .controls { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+        .control-group { display: flex; flex-direction: column; gap: 5px; }
+        .control-group label { font-size: 12px; color: #666; }
+        select, input[type="date"] { padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .checkbox-group { display: flex; align-items: center; gap: 5px; }
+        .checkbox-group input { width: 18px; height: 18px; }
+        .main-content { display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+        .chart-container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        #chart { width: 100% !important; height: 400px !important; }
+        .sidebar { display: flex; flex-direction: column; gap: 20px; }
+        .stats-panel, .snapshot-panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .stats-panel h3, .snapshot-panel h3 { margin-bottom: 15px; color: #333; font-size: 16px; }
+        .stat-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { color: #666; font-size: 14px; }
+        .stat-value { color: #333; font-weight: 600; font-size: 14px; }
+        .snapshot-btn { width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .snapshot-btn:hover { background: #45a049; }
+        .snapshot-list { margin-top: 15px; max-height: 200px; overflow-y: auto; }
+        .snapshot-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 12px; }
+        .snapshot-item a { color: #2196F3; text-decoration: none; }
+        .snapshot-item a:hover { text-decoration: underline; }
+        .loading { text-align: center; padding: 40px; color: #666; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>TimeSeries Insight Dashboard</h1>
-        <p>Loading...</p>
+        <header>
+            <h1>TimeSeries Insight Dashboard</h1>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Column</label>
+                    <select id="columnSelect"><option value="">Loading...</option></select>
+                </div>
+                <div class="control-group">
+                    <label>Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="control-group">
+                    <label>End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="ma7">
+                    <label for="ma7">7-period MA</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="ma30">
+                    <label for="ma30">30-period MA</label>
+                </div>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+            </div>
+            
+            <div class="sidebar">
+                <div class="stats-panel">
+                    <h3>Statistics</h3>
+                    <div id="statsContent"><div class="loading">Loading...</div></div>
+                </div>
+                
+                <div class="snapshot-panel">
+                    <h3>Snapshots</h3>
+                    <button class="snapshot-btn" id="snapshotBtn">Save Snapshot</button>
+                    <div class="snapshot-list" id="snapshotList"><div class="loading">Loading...</div></div>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <script>
+        let chart = null;
+        let currentData = null;
+        
+        async function loadColumns() {
+            try {
+                const response = await fetch('/api/columns');
+                const columns = await response.json();
+                const select = document.getElementById('columnSelect');
+                select.innerHTML = columns.map(col => `<option value="${col}">${col}</option>`).join('');
+                if (columns.length > 0) loadData();
+            } catch (e) { console.error('Error loading columns:', e); }
+        }
+        
+        async function loadData() {
+            const column = document.getElementById('columnSelect').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            const url = new URL('/api/data', window.location.origin);
+            url.searchParams.set('column', column);
+            if (startDate) url.searchParams.set('start_date', startDate);
+            if (endDate) url.searchParams.set('end_date', endDate);
+            
+            try {
+                currentData = await fetch(url).then(r => r.json());
+                updateChart();
+                loadStats();
+            } catch (e) { console.error('Error loading data:', e); }
+        }
+        
+        async function loadStats() {
+            const column = document.getElementById('columnSelect').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            const url = new URL('/api/stats', window.location.origin);
+            url.searchParams.set('column', column);
+            if (startDate) url.searchParams.set('start_date', startDate);
+            if (endDate) url.searchParams.set('end_date', endDate);
+            
+            try {
+                const stats = await fetch(url).then(r => r.json());
+                document.getElementById('statsContent').innerHTML = `
+                    <div class="stat-item"><span class="stat-label">Mean</span><span class="stat-value">${stats.mean?.toFixed(2) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Median</span><span class="stat-value">${stats.median?.toFixed(2) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Std Dev</span><span class="stat-value">${stats.std?.toFixed(2) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Min</span><span class="stat-value">${stats.min?.toFixed(2) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Max</span><span class="stat-value">${stats.max?.toFixed(2) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Count</span><span class="stat-value">${stats.count || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Skewness</span><span class="stat-value">${stats.skewness?.toFixed(2) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Kurtosis</span><span class="stat-value">${stats.kurtosis?.toFixed(2) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Regression Slope</span><span class="stat-value">${stats.regression_slope?.toFixed(4) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">R²</span><span class="stat-value">${stats.r_squared?.toFixed(4) || 0}</span></div>
+                    <div class="stat-item"><span class="stat-label">Anomaly Count</span><span class="stat-value">${stats.anomaly_count || 0}</span></div>
+                `;
+            } catch (e) { console.error('Error loading stats:', e); }
+        }
+        
+        function updateChart() {
+            if (!currentData) return;
+            const ctx = document.getElementById('chart').getContext('2d');
+            const showMa7 = document.getElementById('ma7').checked;
+            const showMa30 = document.getElementById('ma30').checked;
+            
+            const datasets = [{
+                label: 'Data',
+                data: currentData.values,
+                borderColor: '#2196F3',
+                backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                fill: true,
+                tension: 0.1
+            }];
+            
+            if (currentData.regression?.line) {
+                datasets.push({ label: 'Regression', data: currentData.regression.line, borderColor: '#FF9800', borderDash: [5, 5], fill: false, tension: 0 });
+            }
+            if (showMa7 && currentData.moving_averages?.period7) {
+                datasets.push({ label: '7-period MA', data: currentData.moving_averages.period7, borderColor: '#4CAF50', fill: false, tension: 0 });
+            }
+            if (showMa30 && currentData.moving_averages?.period30) {
+                datasets.push({ label: '30-period MA', data: currentData.moving_averages.period30, borderColor: '#9C27B0', fill: false, tension: 0 });
+            }
+            if (currentData.anomalies?.indices?.length > 0) {
+                const anomalyData = currentData.values.map((v, i) => currentData.anomalies.indices.includes(i) ? v : null);
+                datasets.push({ label: 'Anomalies', data: anomalyData, borderColor: '#F44336', backgroundColor: '#F44336', pointRadius: 6, pointStyle: 'circle', showLine: false });
+            }
+            
+            if (chart) chart.destroy();
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: currentData.timestamps, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { intersect: false, mode: 'index' },
+                    plugins: { legend: { position: 'top' }, tooltip: { enabled: true } }
+                }
+            });
+        }
+        
+        async function saveSnapshot() {
+            if (!currentData) return;
+            const column = document.getElementById('columnSelect').value;
+            try {
+                await fetch('/api/snapshot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ timestamps: currentData.timestamps, values: currentData.values, column: column }) });
+                loadSnapshots();
+            } catch (e) { console.error('Error saving snapshot:', e); }
+        }
+        
+        async function loadSnapshots() {
+            try {
+                const snapshots = await fetch('/api/snapshots').then(r => r.json());
+                document.getElementById('snapshotList').innerHTML = snapshots.map(s => `<div class="snapshot-item"><span>${s.date || s.filename}</span><a href="/api/snapshots/${s.filename || s.message}" download>Download</a></div>`).join('') || 'No snapshots yet';
+            } catch (e) { console.error('Error loading snapshots:', e); }
+        }
+        
+        document.getElementById('columnSelect').addEventListener('change', loadData);
+        document.getElementById('startDate').addEventListener('change', loadData);
+        document.getElementById('endDate').addEventListener('change', loadData);
+        document.getElementById('ma7').addEventListener('change', updateChart);
+        document.getElementById('ma30').addEventListener('change', updateChart);
+        document.getElementById('snapshotBtn').addEventListener('click', saveSnapshot);
+        
+        loadColumns();
+        loadSnapshots();
+    </script>
 </body>
 </html>
