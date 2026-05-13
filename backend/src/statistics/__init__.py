@@ -4,22 +4,35 @@ from typing import List, Tuple, Optional
 
 def calculate_mean(data: List[float]) -> float:
     """Calculate arithmetic mean using numpy."""
-    return float(np.mean(data))
+    if not data:
+        return 0.0
+    result = np.mean(data)
+    return 0.0 if np.isnan(result) else float(result)
 
 def calculate_median(data: List[float]) -> float:
     """Calculate median using numpy."""
-    return float(np.median(data))
+    if not data:
+        return 0.0
+    result = np.median(data)
+    return 0.0 if np.isnan(result) else float(result)
 
 def calculate_std(data: List[float]) -> float:
     """Calculate standard deviation using numpy."""
-    return float(np.std(data, ddof=1))
+    if not data:
+        return 0.0
+    result = np.std(data, ddof=1)
+    return 0.0 if np.isnan(result) else float(result)
 
 def calculate_min(data: List[float]) -> float:
     """Calculate minimum value using numpy."""
+    if not data:
+        return 0.0
     return float(np.min(data))
 
 def calculate_max(data: List[float]) -> float:
     """Calculate maximum value using numpy."""
+    if not data:
+        return 0.0
     return float(np.max(data))
 
 def calculate_count(data: List[float]) -> int:
@@ -28,21 +41,33 @@ def calculate_count(data: List[float]) -> int:
 
 def calculate_skewness(data: List[float]) -> float:
     """Calculate skewness using scipy."""
-    return float(stats.skew(data))
+    if not data or len(data) < 4:
+        return 0.0
+    result = stats.skew(data)
+    return 0.0 if np.isnan(result) else float(result)
 
 def calculate_kurtosis(data: List[float]) -> float:
     """Calculate kurtosis using scipy."""
-    return float(stats.kurtosis(data))
+    if not data or len(data) < 4:
+        return 0.0
+    result = stats.kurtosis(data)
+    return 0.0 if np.isnan(result) else float(result)
 
 def linear_regression(data: List[float]) -> Tuple[float, float, float]:
     """
     Perform linear regression using numpy.
     Returns: (slope, intercept, r_squared)
     """
+    if not data or len(data) < 2:
+        return 0.0, 0.0, 0.0
+    
     x = np.arange(len(data))
     y = np.array(data)
     
     slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+    
+    if np.isnan(slope):
+        return 0.0, 0.0, 0.0
     
     r_squared = r_value ** 2
     
@@ -53,14 +78,17 @@ def rolling_average(data: List[float], window: int) -> List[Optional[float]]:
     Calculate rolling average using numpy.
     Returns list with None for first (window-1) elements.
     """
-    if window < 1:
-        return list(data)
+    if not data or window < 1:
+        return list(data) if data else []
     
-    result = [None] * (window - 1)
+    result = []
     
-    for i in range(window - 1, len(data)):
-        window_data = data[i - window + 1:i + 1]
-        result.append(float(np.mean(window_data)))
+    for i in range(len(data)):
+        if i < window - 1:
+            result.append(None)
+        else:
+            window_data = data[i - window + 1:i + 1]
+            result.append(float(np.mean(window_data)))
     
     return result
 
