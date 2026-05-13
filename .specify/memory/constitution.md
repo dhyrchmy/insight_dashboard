@@ -1,50 +1,52 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!-- Sync Impact Report:
+Version Change: 0.0.0 → 1.0.0
+Added: 5 core principles, Technology Stack section, Development Workflow section
+Removed: All template placeholders
+Templates: ✅ plan-template.md, spec-template.md, tasks-template.md - all aligned (no constitution-specific references to update)
+-->
+
+# Insight Dashboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Statistical Computing
+All statistical computations MUST use numpy/scipy libraries; manual implementations of statistical functions are prohibited. This ensures reliable, optimized, and testable statistical operations.
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+### II. Local-First Resources
+Chart.js MUST be bundled locally within the project; CDN dependencies are prohibited. This ensures offline capability and eliminates external dependency risks.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+### III. Self-Contained Data
+The application MUST auto-generate a sample CSV file containing 1 year of hourly data (timestamp, temperature, humidity, pressure) when no CSV file is provided. This ensures the dashboard works out-of-the-box without manual data preparation.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### IV. Test Coverage Enforcement (NON-NEGOTIABLE)
+The statistics module MUST maintain a minimum of 70% test coverage. All statistical functions require comprehensive test coverage before implementation is considered complete.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### V. Atomic Git Workflow
+Every git commit MUST represent exactly one task. Multi-feature or multi-task commits are prohibited. This ensures granular traceability and simplifies rollback operations.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+## Technology Stack
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+**Backend**: FastAPI (Python web framework)
+**Frontend**: Chart.js (bundled locally)
+**Data Processing**: pandas, numpy, scipy
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+## Development Workflow
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+**Commit Rules**:
+- One task per commit
+- Commit message MUST describe the specific task completed
+- Tests MUST be committed alongside implementation
+
+**Coverage Requirements**:
+- Statistics module: minimum 70% coverage
+- Coverage reports MUST be generated and reviewed
+
+**Data Handling**:
+- Sample CSV auto-generation for empty/missing data
+- CSV format: timestamp, temperature, humidity, pressure
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+All PRs and reviews MUST verify compliance with core principles. The constitution supersedes all other practices; amendments require documentation and approval.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-05-13 | **Last Amended**: 2026-05-13
