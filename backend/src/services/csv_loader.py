@@ -27,7 +27,7 @@ class CSVLoader:
         if end_date:
             df = df[df["timestamp"] <= pd.to_datetime(end_date)]
         
-        df = df.fillna(method="ffill").fillna(method="bfill")
+        df = df.ffill().bfill()
         
         return df
     
